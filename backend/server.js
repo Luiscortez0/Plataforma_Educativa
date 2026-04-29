@@ -7,13 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 👇 IMPORTANTE
 const authRoutes = require('./routes/authRoutes');
+const testRoutes = require('./routes/testRoutes');
+const moduleRoutes = require('./routes/moduleRoutes');
+const materialRoutes = require('./routes/materialRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/test', testRoutes);
+app.use('/api/modules', moduleRoutes);
+app.use('/api/materials', materialRoutes);
 
 app.listen(3000, () => {
   console.log('Servidor corriendo en puerto 3000');
 });
-
-const testRoutes = require('./routes/testRoutes');
-app.use('/api/test', testRoutes);

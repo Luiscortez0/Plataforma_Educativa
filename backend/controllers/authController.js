@@ -4,18 +4,21 @@ const jwt = require('jsonwebtoken');
 
 // REGISTRO
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const userRole = role || 'docente';
+
     const result = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, email, hashedPassword, userRole]
     );
 
     res.json(result.rows[0]);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -44,7 +47,10 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.rows[0].id },
+      {
+        id: user.rows[0].id,
+        role: user.rows[0].role
+      },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -52,5 +58,21 @@ exports.login = async (req, res) => {
     res.json({ token });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// MIDDLEWARE DE AUTENTICACIÓN
+const auth = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ error: 'Token inválido' });
   }
 };
